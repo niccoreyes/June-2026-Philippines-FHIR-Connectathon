@@ -105,15 +105,54 @@ The Connectathon aims to foster interoperability across health systems by provid
     | Dr. Leslie Ann Sedillo | Provincial Health Officer II, Province of Aklan |
 
     #### **ACTIVITIES:**
-     > **Link to Bundle Examples**
-     1. ****Initiating Facility — new patient, create record****
-        - Search for existing patient record (GET) → 200 OK – empty result (no match = new patient)
-        - Since no record exists, create patient record – demographics (POST) → 201 Created
-        - Update patient record – clinical data (PUT) → 200 OK
+     > 📖 **Essential Reading**: Participants must review the [PHeRef End-to-End Sample Case (Ana Reyes)](https://build.fhir.org/ig/ph-ereferral-organization/ph-ereferral/en/sample-case-ana-reyes.html) for complete bundle examples and step-by-step guidance on conditional updates.
 
-    2. ****Receiving Facility — record already exists, update it****
-       - Search and retrieve patient record (GET) → 200 OK – returns existing record (created by Initiating Facility)
-       - Update patient record – clinical data (PUT) → 200 OK
+     > **Bundle Examples**: [PHeRef Bundle Examples](https://build.fhir.org/ig/ph-ereferral-organization/ph-ereferral/en/sample-case-ana-reyes.html)
+
+     ##### Conditional Update (PUT) Pattern
+     All PUT operations in this track use **conditional update by identifier** — the server creates the resource if no matching identifier exists, otherwise updates the existing one:
+
+     ```
+     PUT /{Resource}?identifier={system}|{value}
+     ```
+
+     For Organization, use the NHFR code system:
+     ```
+     PUT /Organization?identifier=https://fhir.doh.gov.ph/phcore/Identifier/doh-nhfr-code|{organization_code}
+     ```
+
+     | Resource | Identifier System | Example |
+     |----------|-------------------|---------|
+     | Organization | `https://fhir.doh.gov.ph/phcore/Identifier/doh-nhfr-code` | `PUT /Organization?identifier=https://fhir.doh.gov.ph/phcore/Identifier/doh-nhfr-code|123456` |
+     | Practitioner | `https://fhir.doh.gov.ph/phcore/Identifier/doh-prc-license-number` | `PUT /Practitioner?identifier=https://fhir.doh.gov.ph/phcore/Identifier/doh-prc-license-number|PRC-12345` |
+     | Patient | `https://fhir.doh.gov.ph/phcore/Identifier/philhealth-id` | `PUT /Patient?identifier=https://fhir.doh.gov.ph/phcore/Identifier/philhealth-id|1234-567890` |
+     | ServiceRequest | Referral identifier | `PUT /ServiceRequest?identifier={referral_id}` |
+
+     The NHFR (National Health Facility Registry) code system is bound via: [PH Core DOH NHFR Code](https://build.fhir.org/ig/UP-Manila-SILab/ph-core/en/StructureDefinition-ph-core-doh-nhfr-code.html)
+
+     ##### Use Cases
+
+     1. ****Initiating Facility — Submit eReferral via conditional PUT****
+        - PUT /Organization?identifier=... — upsert initiating and receiving facilities (conditional create/update by NHFR code)
+        - PUT /Practitioner?identifier=... — upsert referring practitioner (conditional by PRC license)
+        - PUT /Patient?identifier=... — upsert patient record (conditional by PhilHealth ID or PhilSys ID)
+        - PUT /ServiceRequest?identifier=... — upsert referral details
+        - PUT /Task — create task for referral tracking
+        - POST /Condition — add chief complaint, clinical history, and working impression
+        - POST /Observation — add vital signs (blood pressure, heart rate, temperature, O2 sat, weight)
+        - POST /Procedure — record treatment given
+        - POST /DiagnosticReport — attach laboratory results
+        - Submit as a `Bundle.type = transaction` for atomic processing
+
+    2. ****Receiving Facility — Retrieve and update eReferral****
+       - GET /Organization?identifier=... — retrieve facility details
+       - GET /Practitioner?identifier=... — retrieve referring practitioner
+       - GET /Patient?identifier=... — retrieve patient record
+       - GET /ServiceRequest?identifier=... — retrieve referral details
+       - GET /Task?identifier=... — retrieve task status
+       - GET /Condition?patient=... — retrieve clinical data
+       - GET /Observation?patient=... — retrieve vital signs
+       - PUT /Task?identifier=... — update action point (received, accepted, referred onward)
         
       4. ****LGU Dashboard (PHO Only) — read-only reporting****
          - Search patients seen by facility based on Referral Category and Reason for Referral (GET) → 200 OK – returns list
@@ -219,6 +258,7 @@ The Connectathon aims to foster interoperability across health systems by provid
 ### Additional Resources
 
 - [Participant Packet](https://drive.google.com/drive/folders/13-2Mq-gSoYumIrA6D3EpLUwo-2_4nnVq?usp=drive_link)
+- [PHeRef End-to-End Sample Case (Ana Reyes)](https://build.fhir.org/ig/ph-ereferral-organization/ph-ereferral/en/sample-case-ana-reyes.html) — Reference bundle examples and conditional update guide for Track 1
 - [FHIR Official Documentation](https://www.fhir.org/summary.html)
 - [HL7 FHIR Community Chat](https://chat.fhir.org/)
 - [Philippine eHealth Roadmap](https://doh.gov.ph/)
@@ -249,5 +289,5 @@ For questions and queries regarding the Connectathon, please contact **nih-nthc.
 ---
 
 
-**Last Updated**: June 15, 2026  
+**Last Updated**: June 23, 2026  
 **Next Review**: Post-Connectathon Debrief
